@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BodyCoach AI</title>
+    <style>
+        :root {
+            --bg: #070b0d;
+            --panel: rgba(12, 16, 18, 0.92);
+            --panel-2: rgba(10, 13, 15, 0.88);
+            --text: #e7f1ee;
+            --muted: rgba(231, 241, 238, 0.72);
+            --border: rgba(255, 255, 255, 0.10);
+            --shadow: 0 24px 80px rgba(0,0,0,0.6);
+
+            --neon: #00ff88;
+            --neon-2: #22ff9d;
+            --danger: #ff3b6a;
+
+            --radius: 18px;
+            --radius-sm: 12px;
+            --control-h: 46px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+            background:
+                radial-gradient(1200px 700px at 25% 15%, rgba(0, 255, 136, 0.10), transparent 60%),
+                radial-gradient(900px 600px at 75% 80%, rgba(0, 255, 136, 0.08), transparent 60%),
+                linear-gradient(180deg, #050708, #070b0d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 980px;
+            width: 100%;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: min(92vh, 920px);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            background: linear-gradient(180deg, rgba(0,255,136,0.10), rgba(0,0,0,0.0));
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .brand h1 {
+            font-size: 18px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .brand p {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .status-pill {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(0,0,0,0.25);
+            white-space: nowrap;
+        }
+
+        /* Chat */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 18px 10px;
+            background: var(--panel-2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .message.user { align-items: flex-end; }
+        .message.assistant { align-items: flex-start; }
+
+        .message-bubble {
+            max-width: 78%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            word-wrap: break-word;
+            line-height: 1.35;
+            border: 1px solid var(--border);
+        }
+
+        .message.user .message-bubble {
+            background: rgba(0, 255, 136, 0.12);
+            border-color: rgba(0, 255, 136, 0.25);
+            box-shadow: 0 0 0 1px rgba(0,255,136,0.06), 0 10px 30px rgba(0,255,136,0.08);
+        }
+
+        .message.assistant .message-bubble {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .agent-badge {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* Input */
+        .input-container {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            background: rgba(0,0,0,0.25);
+        }
+
+        .image-preview {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .image-preview img {
+            width: 96px;
+            height: 96px;
+            object-fit: cover;
+            border-radius: 14px;
+            border: 1px solid rgba(0,255,136,0.35);
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        textarea {
+            flex: 1;
+            height: var(--control-h);
+            padding: 12px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            background: rgba(0,0,0,0.35);
+            color: var(--text);
+        }
+
+        textarea::placeholder { color: rgba(231,241,238,0.45); }
+
+        textarea:focus {
+            outline: none;
+            border-color: rgba(0,255,136,0.45);
+            box-shadow: 0 0 0 3px rgba(0,255,136,0.10);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .btn {
+            height: var(--control-h);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(0,255,136,0.35);
+            background: rgba(0,255,136,0.10);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+            box-shadow: 0 0 0 1px rgba(0,255,136,0.08), 0 14px 36px rgba(0,0,0,0.45);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: rgba(0,255,136,0.14);
+            border-color: rgba(0,255,136,0.55);
+            box-shadow: 0 0 0 1px rgba(0,255,136,0.12), 0 18px 44px rgba(0,0,0,0.55);
+        }
+
+        .btn:active:not(:disabled) { transform: translateY(0px) scale(0.99); }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(180deg, rgba(0,255,136,0.20), rgba(0,255,136,0.08));
+        }
+
+        .btn-danger {
+            border-color: rgba(255, 59, 106, 0.40);
+            background: rgba(255, 59, 106, 0.12);
+            box-shadow: 0 0 0 1px rgba(255,59,106,0.10), 0 14px 36px rgba(0,0,0,0.45);
+        }
+
+        .btn-danger.recording {
+            animation: pulse 1s infinite;
+        }
+
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 1px rgba(255,59,106,0.16), 0 0 28px rgba(255,59,106,0.28); }
+            50% { box-shadow: 0 0 0 1px rgba(255,59,106,0.22), 0 0 44px rgba(255,59,106,0.40); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(231, 241, 238, 0.25);
+            border-radius: 50%;
+            border-top-color: var(--neon);
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Init screen */
+        .init-screen {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(900px 600px at 50% 35%, rgba(0,255,136,0.10), transparent 65%);
+        }
+
+        .init-content {
+            width: min(520px, 92%);
+            text-align: center;
+            padding: 34px 26px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: rgba(0,0,0,0.25);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+        }
+
+        .init-content h2 {
+            font-size: 22px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .init-content p {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 18px;
+            line-height: 1.45;
+        }
+
+        .init-button { min-width: 170px; }
+
+        .init-status {
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .init-status.success { color: rgba(0,255,136,0.9); }
+        .init-status.error { color: rgba(255,59,106,0.9); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>BodyCoach AI</h1>
+                <p>Персональный тренер и питание • RAG • InBody</p>
+            </div>
+            <div class="status-pill">Online</div>
+        </div>
+        
+        <!-- Экран инициализации -->
+        <div id="initScreen" class="init-screen">
+            <div class="init-content">
+                <h2>BodyCoach AI</h2>
+                <p>Нажмите «Начать», чтобы получить токены и активировать интерфейс.</p>
+                <button id="initButton" class="btn btn-primary init-button">Начать</button>
+                <div id="initStatus" class="init-status"></div>
+            </div>
+        </div>
+        
+        <!-- Чат (скрыт до инициализации) -->
+        <div class="chat-container" id="chatContainer" style="display: none;">
+            <div class="message assistant">
+                <div class="message-bubble">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Привет! Я BodyCoach AI.</div>
+                    <div style="color: rgba(231,241,238,0.82);">
+                        Я умею анализировать отчёты InBody по фото, составлять планы тренировок и питания,
+                        а также отвечать на вопросы по теме спорта и здоровья.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Поле ввода -->
+        <div class="input-container">
+            <div class="image-preview" id="imagePreview"></div>
+            <div class="input-wrapper">
+                <div class="file-input-wrapper">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <label for="imageInput" class="btn" title="Загрузить фото">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M7 7l2-2h6l2 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2z" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M12 18a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                        Фото
+                    </label>
+                </div>
+                <button id="recordButton" class="btn btn-danger" title="Голосовой ввод">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M12 18v3" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M8 21h8" stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                    Голос
+                </button>
+                <textarea id="messageInput" placeholder="Введите сообщение или загрузите фото отчёта InBody..." rows="1"></textarea>
+                <button id="sendButton" class="btn btn-primary">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 12l16-8-6 16-3-7-7-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                    Отправить
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Элементы DOM
+        const elements = {
+            chatContainer: document.getElementById('chatContainer'),
+            initScreen: document.getElementById('initScreen'),
+            initButton: document.getElementById('initButton'),
+            initStatus: document.getElementById('initStatus'),
+            messageInput: document.getElementById('messageInput'),
+            imageInput: document.getElementById('imageInput'),
+            imagePreview: document.getElementById('imagePreview'),
+            sendButton: document.getElementById('sendButton'),
+            recordButton: document.getElementById('recordButton')
+        };
+        
+        // Состояние приложения
+        const state = {
+            selectedImages: [],
+            systemInitialized: false,
+            isRecording: false,
+            mediaRecorder: null,
+            audioChunks: []
+        };
+
+        function setInputsEnabled(enabled) {
+            elements.messageInput.disabled = !enabled;
+            elements.imageInput.disabled = !enabled;
+            elements.sendButton.disabled = !enabled;
+            elements.recordButton.disabled = !enabled;
+        }
+
+        // До "Начать" всё снизу недоступно
+        setInputsEnabled(false);
+        
+        // Инициализация системы
+        async function initializeSystem() {
+            elements.initButton.disabled = true;
+            elements.initStatus.textContent = 'Инициализация системы...';
+            elements.initStatus.className = 'init-status';
+            
+            try {
+                const response = await fetch('/api/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    elements.initStatus.textContent = '✓ Система успешно инициализирована!';
+                    elements.initStatus.className = 'init-status success';
+                    
+                    setTimeout(() => {
+                        elements.initScreen.style.display = 'none';
+                        elements.chatContainer.style.display = 'flex';
+                        state.systemInitialized = true;
+                        setInputsEnabled(true);
+                    }, 1000);
+                } else {
+                    showError('✗ Ошибка: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                showError('✗ Ошибка при инициализации. Проверьте настройки .env файла.');
+            }
+        }
+        
+        function showError(message) {
+            elements.initStatus.textContent = message;
+            elements.initStatus.className = 'init-status error';
+            elements.initButton.disabled = false;
+        }
+        
+        // Обработка загрузки изображения (только 1 фото)
+        elements.imageInput.addEventListener('change', function(e) {
+            const file = e.target.files && e.target.files[0];
+            state.selectedImages = [];
+            elements.imagePreview.innerHTML = '';
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                state.selectedImages = [imageData];
+                
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.onclick = () => removeImage(imageData);
+                elements.imagePreview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        function removeImage(imageData) {
+            state.selectedImages = state.selectedImages.filter(img => img !== imageData);
+            updateImagePreview();
+        }
+        
+        function updateImagePreview() {
+            elements.imagePreview.innerHTML = '';
+            state.selectedImages.forEach(imageData => {
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.onclick = () => removeImage(imageData);
+                elements.imagePreview.appendChild(img);
+            });
+        }
+        
+        // Отправка сообщения по Enter
+        elements.messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Автоматическое изменение размера textarea
+        elements.messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+        
+        // Отправка сообщения
+        async function sendMessage() {
+            if (!state.systemInitialized) {
+                alert('Пожалуйста, сначала инициализируйте систему, нажав кнопку "Начать"');
+                return;
+            }
+            
+            const text = elements.messageInput.value.trim();
+            const images = state.selectedImages;
+            const image = images && images.length > 0 ? images[0] : null;
+            
+            if (!text && images.length === 0) {
+                return;
+            }
+            
+            // Добавляем сообщение пользователя в чат
+            addMessage('user', text, images);
+            
+            // Очищаем поля
+            clearInput();
+            
+            // Блокируем кнопку отправки
+            setLoading(true);
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        image: image
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Добавляем ответ ассистента в чат
+                addMessage('assistant', data.response, null, data.agent, data.type, data.data);
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                addMessage('assistant', 'Произошла ошибка при обработке запроса. Попробуйте еще раз.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function clearInput() {
+            elements.messageInput.value = '';
+            elements.imageInput.value = '';
+            state.selectedImages = [];
+            elements.imagePreview.innerHTML = '';
+        }
+        
+        function setLoading(loading) {
+            elements.sendButton.disabled = loading;
+            elements.sendButton.innerHTML = loading
+                ? '<span class="loading"></span>'
+                : '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7-7-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Отправить';
+        }
+        
+        // Добавление сообщения в чат
+        function addMessage(type, text, images, agent, responseType, data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            // Изображения
+            if (images && images.length > 0) {
+                images.forEach(imgSrc => {
+                    const img = document.createElement('img');
+                    img.src = imgSrc;
+                    img.style.cssText = 'width: 200px; height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;';
+                    bubble.appendChild(img);
+                });
+            }
+            
+            // Структурированные данные
+            if (data) {
+                if (data.table) {
+                    const tableDiv = document.createElement('div');
+                    tableDiv.innerHTML = '<pre>' + data.table + '</pre>';
+                    bubble.appendChild(tableDiv);
+                }
+                if (data.plan) {
+                    const planDiv = document.createElement('div');
+                    planDiv.style.cssText = 'margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 10px;';
+                    planDiv.innerHTML = data.plan.replace(/\n/g, '<br>');
+                    bubble.appendChild(planDiv);
+                }
+            }
+            
+            // Текст
+            if (text) {
+                const textDiv = document.createElement('div');
+                textDiv.innerHTML = text.replace(/\n/g, '<br>');
+                bubble.appendChild(textDiv);
+            }
+            
+            messageDiv.appendChild(bubble);
+            
+            // Бейдж агента
+            if (agent) {
+                const badge = document.createElement('div');
+                badge.className = 'agent-badge';
+                badge.textContent = agent;
+                messageDiv.appendChild(badge);
+            }
+            
+            elements.chatContainer.appendChild(messageDiv);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+        
+        // Голосовой ввод
+        elements.recordButton.addEventListener('click', toggleRecording);
+        
+        async function toggleRecording() {
+            if (!state.isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+        
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                state.mediaRecorder = new MediaRecorder(stream);
+                state.audioChunks = [];
+                
+                state.mediaRecorder.ondataavailable = (event) => {
+                    state.audioChunks.push(event.data);
+                };
+                
+                state.mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                    
+                    try {
+                        const pcmBlob = await convertToPcm16kMono(audioBlob);
+                        await sendAudioToServer(pcmBlob, 'recording.pcm');
+                    } catch (e) {
+                        alert('Ошибка: не удалось конвертировать аудио для распознавания. Откройте консоль (F12) и пришлите лог.');
+                    }
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                // timeslice помогает получить chunks во время записи
+                state.mediaRecorder.start(250);
+                state.isRecording = true;
+                elements.recordButton.classList.add('recording');
+                elements.recordButton.disabled = false;
+            } catch (error) {
+                console.error('Ошибка доступа к микрофону:', error);
+                alert('Не удалось получить доступ к микрофону');
+            }
+        }
+        
+        function stopRecording() {
+            if (state.mediaRecorder && state.isRecording) {
+                state.mediaRecorder.stop();
+                state.isRecording = false;
+                elements.recordButton.classList.remove('recording');
+            }
+        }
+        
+        async function sendAudioToServer(audioBlob, filename = 'recording.pcm') {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, filename);
+            
+            try {
+                const response = await fetch('/api/speech', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const text = (data.text ?? '').toString();
+                    elements.messageInput.value = text;
+                } else if (data.status === 'error') {
+                    console.error('STT error:', data.message);
+                }
+            } catch (error) {
+                console.error('Ошибка отправки аудио:', error);
+            }
+        }
+
+        // Конвертация audio/webm (opus) -> PCM16 mono 16kHz (Blob)
+        async function convertToPcm16kMono(audioBlob) {
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const decoded = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+
+            // ресемпл в 16kHz
+            const targetRate = 16000;
+            const offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetRate), targetRate);
+            const source = offline.createBufferSource();
+            source.buffer = decoded;
+            source.connect(offline.destination);
+            source.start(0);
+            const rendered = await offline.startRendering();
+
+            const samples = rendered.getChannelData(0);
+            const pcmBuffer = new ArrayBuffer(samples.length * 2);
+            const view = new DataView(pcmBuffer);
+            for (let i = 0; i < samples.length; i++) {
+                let s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+
+            return new Blob([pcmBuffer], { type: 'application/octet-stream' });
+        }
+        
+        // Инициализация обработчиков событий
+        elements.initButton.addEventListener('click', initializeSystem);
+        elements.sendButton.addEventListener('click', sendMessage);
+    </script>
+</body>
+</html>
