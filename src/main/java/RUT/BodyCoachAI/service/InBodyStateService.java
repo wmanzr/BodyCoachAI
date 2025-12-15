@@ -25,4 +25,3 @@ public class InBodyStateService {
         return getLastInBodyData(userId) != null;
     }
 }
-

@@ -19,6 +19,7 @@ public class AgentRouter {
     private final TrainingPlanAgent trainingPlanAgent;
     private final NutritionPlanAgent nutritionPlanAgent;
     private final QAAgent QAAgent;
+    private final RagQaAgent ragQaAgent;
     private final DataAgent dataAgent;
     private final ChatLanguageModel chatModel;
     private final ChatHistoryService chatHistoryService;
@@ -28,6 +29,7 @@ public class AgentRouter {
             TrainingPlanAgent trainingPlanAgent,
             NutritionPlanAgent nutritionPlanAgent,
             QAAgent QAAgent,
+            RagQaAgent ragQaAgent,
             DataAgent dataAgent,
             GigaChatService gigaChatService,
             ChatHistoryService chatHistoryService,
@@ -35,28 +37,39 @@ public class AgentRouter {
         this.trainingPlanAgent = trainingPlanAgent;
         this.nutritionPlanAgent = nutritionPlanAgent;
         this.QAAgent = QAAgent;
+        this.ragQaAgent = ragQaAgent;
         this.dataAgent = dataAgent;
         this.chatModel = gigaChatService.getChatLanguageModel();
         this.chatHistoryService = chatHistoryService;
         this.inBodyStateService = inBodyStateService;
     }
 
-    public AgentResponse route(String userRequest, String image, String userId) {
+    public AgentResponse route(String userRequest, String image, String userId, boolean ragEnabled) {
         String systemPrompt = "Ты выступаешь в роли интеллектуального роутера запросов пользователя. " +
                 "Твоя задача — определить ТОЛЬКО тип запроса и вернуть ОДНО ключевое слово без пояснений.\n\n" +
                 "Возможные типы запросов:\n" +
                 "1. 'training' — ТОЛЬКО если пользователь ЯВНО просит СОСТАВИТЬ или СГЕНЕРИРОВАТЬ именно план тренировок, " +
                 "расписание тренировок, программу упражнений или тренировочный план.\n" +
+                "   НЕ 'training': вопросы о влиянии упражнений (\"как подтягивания влияют?\"), вопросы о технике, общие вопросы о тренировках.\n" +
                 "2. 'nutrition' — ТОЛЬКО если пользователь ЯВНО просит СОСТАВИТЬ именно план питания, рацион, меню или диету.\n" +
-                "3. 'data' — если запрос связан с обработкой, анализом, загрузкой, проверкой или отображением данных InBody, " +
-                "также если пользователь загрузил изображения с отчетами InBody и если пользователь просить excel таблицу или просит рассчитать КБЖУ. \n" +
+                "   НЕ 'nutrition': вопросы о влиянии продуктов, вопросы о питании, общие вопросы о диетах.\n" +
+                "3. 'data' — ТОЛЬКО если запрос ЯВНО связан с РАБОТОЙ С ОТЧЕТОМ InBody: " +
+                "загрузка фото отчёта InBody, создание Excel-таблицы из данных InBody, расчёт КБЖУ на основе данных InBody, " +
+                "просмотр или отображение конкретных показателей из отчёта InBody. " +
+                "НЕ относится к 'data': общие вопросы о здоровье, питании, тренировках, даже если упоминается слово 'анализ' или 'данные'.\n" +
                 "4. 'qa' — ЛЮБЫЕ вопросы, объяснения или консультации. " +
                 "Если пользователь задаёт вопросы о тренировках, питании или здоровье, " +
-                "но НЕ просит составить план, такой запрос ВСЕГДА относится к 'qa'.\n\n" +
+                "но НЕ просит составить план, такой запрос ВСЕГДА относится к 'qa'.\n" +
+                "   Примеры 'qa': \"как подтягивания влияют на организм?\", \"что такое бег?\", \"почему важно питание?\", " +
+                "\"как упражнения влияют на мозг?\", \"можно ли заниматься спортом каждый день?\"\n\n" +
                 "ВАЖНО:\n" +
-                "- Если запрос выглядит как вопрос (почему, как, что, можно ли, стоит ли) — это 'qa'.\n" +
+                "- Если запрос выглядит как вопрос (почему, как, что, можно ли, стоит ли, влияет ли) — это ВСЕГДА 'qa'.\n" +
+                "- Если пользователь спрашивает о влиянии упражнений/питания на организм — это 'qa', НЕ 'training' или 'nutrition'.\n" +
                 "- Если пользователь просто интересуется тренировками или питанием без запроса на план — это 'qa'.\n" +
-                "- Тип 'training' и 'nutrition' выбирай ТОЛЬКО при прямой просьбе составить план.\n\n" +
+                "- Тип 'training' и 'nutrition' выбирай ТОЛЬКО при прямой просьбе составить/создать/сгенерировать план.\n\n" +
+                (ragEnabled ? 
+                    "ВАЖНО: RAG режим включен. Для типа 'qa' будет использован QA RAG Agent, который берет информацию ТОЛЬКО из контекста загруженных документов.\n\n" :
+                    "ВАЖНО: RAG режим выключен. Для типа 'qa' будет использован QA Agent, который может отвечать используя свои знания.\n\n") +
                 "Запрос пользователя: \"" + userRequest + "\"\n\n" +
                 "Верни строго одно слово: training, nutrition, data или qa.";
 
@@ -94,11 +107,19 @@ public class AgentRouter {
                 "DataAgent"
             );
         } else {
-            log.info("Выбран агент: RagQaAgent для запроса: \"{}\"", userRequest);
-            response = new AgentResponse(
-                QAAgent.answerQuestion(userRequest, userId),
-                "RagQaAgent"
-            );
+            if (ragEnabled) {
+                log.info("Выбран агент: RagQaAgent (RAG включен) для запроса: \"{}\"", userRequest);
+                response = new AgentResponse(
+                    ragQaAgent.answerQuestion(userRequest, userId),
+                    "RagQaAgent"
+                );
+            } else {
+                log.info("Выбран агент: QAAgent (RAG выключен) для запроса: \"{}\"", userRequest);
+                response = new AgentResponse(
+                    QAAgent.answerQuestion(userRequest, userId),
+                    "QAAgent"
+                );
+            }
         }
         return response;
     }

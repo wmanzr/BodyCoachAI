@@ -2,6 +2,7 @@ package RUT.BodyCoachAI.agent;
 
 import RUT.BodyCoachAI.service.ChatHistoryService;
 import RUT.BodyCoachAI.service.GigaChatService;
+import RUT.BodyCoachAI.service.MarkdownFormatter;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.springframework.stereotype.Component;
@@ -13,10 +14,12 @@ public class NutritionPlanAgent {
     
     private final ChatLanguageModel chatModel;
     private final ChatHistoryService chatHistoryService;
+    private final MarkdownFormatter markdownFormatter;
     
-    public NutritionPlanAgent(GigaChatService gigaChatService, ChatHistoryService chatHistoryService) {
+    public NutritionPlanAgent(GigaChatService gigaChatService, ChatHistoryService chatHistoryService, MarkdownFormatter markdownFormatter) {
         this.chatModel = gigaChatService.getChatLanguageModel();
         this.chatHistoryService = chatHistoryService;
+        this.markdownFormatter = markdownFormatter;
     }
     
     public String generateNutritionPlan(String userRequest, String userId) {
@@ -29,9 +32,10 @@ public class NutritionPlanAgent {
                 "Создавай индивидуальные планы питания на основе целей и данных пользователя. " +
                 "Планы должны быть сбалансированными и учитывать КБЖУ. " +
                 "Дай краткие рекомендации. " +
-                "Для форматирования используй ТОЛЬКО HTML теги. Не используй Markdown символы.";
+                "Отвечай ТОЛЬКО текстом, НЕ генерируй таблицы и прочее.";
 
         List<ChatMessage> messages = chatHistoryService.buildMessagesWithHistory(userId, systemPrompt, userRequest);
-        return chatModel.generate(messages).content().text();
+        String response = chatModel.generate(messages).content().text();
+        return markdownFormatter.markdownToHtml(response);
     }
 }

@@ -2,6 +2,7 @@ package RUT.BodyCoachAI.agent;
 
 import RUT.BodyCoachAI.service.ChatHistoryService;
 import RUT.BodyCoachAI.service.GigaChatService;
+import RUT.BodyCoachAI.service.MarkdownFormatter;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.springframework.stereotype.Component;
@@ -13,10 +14,12 @@ public class TrainingPlanAgent {
     
     private final ChatLanguageModel chatModel;
     private final ChatHistoryService chatHistoryService;
+    private final MarkdownFormatter markdownFormatter;
     
-    public TrainingPlanAgent(GigaChatService gigaChatService, ChatHistoryService chatHistoryService) {
+    public TrainingPlanAgent(GigaChatService gigaChatService, ChatHistoryService chatHistoryService, MarkdownFormatter markdownFormatter) {
         this.chatModel = gigaChatService.getChatLanguageModel();
         this.chatHistoryService = chatHistoryService;
+        this.markdownFormatter = markdownFormatter;
     }
     
     public String generateTrainingPlan(String userRequest, String userId) {
@@ -28,9 +31,10 @@ public class TrainingPlanAgent {
                 "Создавай индивидуальные планы тренировок на основе данных пользователя. " +
                 "Планы должны быть структурированными, безопасными и эффективными." +
                 "Дай рекомендации по восстановлению и технике безопасности." +
-                "Для форматирования используй ТОЛЬКО HTML теги. Не используй Markdown символы.";
+                "Отвечай ТОЛЬКО текстом, НЕ генерируй таблицы и прочее.";
 
         List<ChatMessage> messages = chatHistoryService.buildMessagesWithHistory(userId, systemPrompt, userRequest);
-        return chatModel.generate(messages).content().text();
+        String response = chatModel.generate(messages).content().text();
+        return markdownFormatter.markdownToHtml(response);
     }
 }

@@ -4,6 +4,7 @@ import RUT.BodyCoachAI.agent.tools.DataBodyTools;
 import RUT.BodyCoachAI.model.InBodyData;
 import RUT.BodyCoachAI.service.GigaChatService;
 import RUT.BodyCoachAI.service.InBodyStateService;
+import RUT.BodyCoachAI.service.MarkdownFormatter;
 import com.google.gson.Gson;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -27,13 +28,15 @@ public class DataAgent {
     private final InBodyStateService inBodyStateService;
     private final ChatLanguageModel chatModel;
     private final Gson gson;
+    private final MarkdownFormatter markdownFormatter;
 
-    public DataAgent(DataBodyTools tools, GigaChatService gigaChatService, InBodyStateService inBodyStateService) {
+    public DataAgent(DataBodyTools tools, GigaChatService gigaChatService, InBodyStateService inBodyStateService, MarkdownFormatter markdownFormatter) {
         this.tools = tools;
         this.gigaChatService = gigaChatService;
         this.inBodyStateService = inBodyStateService;
         this.chatModel = gigaChatService.getChatLanguageModel();
         this.gson = new Gson();
+        this.markdownFormatter = markdownFormatter;
     }
 
     public String handleDataTools(String userRequest, String userId, String base64Image) {
@@ -68,14 +71,7 @@ public class DataAgent {
             }
             String fileName = tools.createTableByDataForUser(data);
             log.info("handleDataTools done in {}ms (excel)", System.currentTimeMillis() - t0);
-            return "<b>Excel-таблица готова.</b><br>" +
-                    "<a class=\"btn btn-primary download-btn\" href=\"/api/files/" + fileName + "\">" +
-                    "<svg class=\"btn-icon\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\">" +
-                    "<path d=\"M12 3v10m0 0l4-4m-4 4l-4-4\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>" +
-                    "<path d=\"M5 21h14\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/>" +
-                    "</svg>" +
-                    "Скачать файл" +
-                    "</a>";
+            return "EXCEL_FILE:" + fileName;
         }
 
         if ("kbju".equals(action)) {
@@ -106,7 +102,7 @@ public class DataAgent {
             return "Не удалось сформировать ответ. Попробуйте ещё раз.";
         }
         log.info("handleDataTools done in {}ms (text)", System.currentTimeMillis() - t0);
-        return html;
+        return markdownFormatter.markdownToHtml(html);
     }
 
     private InBodyData extractInBodyDataFromImage(String base64Image) {
@@ -162,13 +158,11 @@ public class DataAgent {
                 Доступные действия (поле action):
                 - "excel"  — если пользователь просит Excel/таблицу/файл со статистикой.
                 - "kbju"   — если пользователь просит расчёт КБЖУ (калории/белки/жиры/углеводы).
-                - "text"   — если инструмент не нужен (просто текстовые рекомендации/объяснение показателей).
+                - "text"   — в любом другом случае (например, просто текстовые рекомендации/объяснение показателей).
 
                 Если action="text", обязательно заполни поле replyHtml с готовым ответом.
                 Если action="excel" или "kbju", replyHtml можно оставить пустым/ null.
-
-                Форматирование replyHtml: используй только HTML теги (<b>, <i>, <br>, <ul>, <ol>, <li>, <a>).
-                Никаких Markdown (** ## и т.п.). Никаких длинных пустых строк/пробелов.
+                П
 
                 Формат JSON:
                 {

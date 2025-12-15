@@ -45,12 +45,15 @@ public class ChatHistoryService {
     public List<ChatMessage> buildMessagesWithHistory(String userId, String systemPrompt, String userMessage) {
         List<ChatMessage> messages = new ArrayList<>();
         List<ChatMessage> history = getHistory(userId);
-        
-        if (history.isEmpty() || !(history.get(0) instanceof SystemMessage)) {
-            messages.add(SystemMessage.from(systemPrompt));
+
+        messages.add(SystemMessage.from(systemPrompt));
+
+        for (ChatMessage msg : history) {
+            if (!(msg instanceof SystemMessage)) {
+                messages.add(msg);
+            }
         }
         
-        messages.addAll(history);
         messages.add(UserMessage.from(userMessage));
         
         return messages;

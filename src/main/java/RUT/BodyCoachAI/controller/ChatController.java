@@ -3,6 +3,7 @@ package RUT.BodyCoachAI.controller;
 import RUT.BodyCoachAI.agent.AgentRouter;
 import RUT.BodyCoachAI.service.ChatHistoryService;
 import RUT.BodyCoachAI.service.GigaChatService;
+import RUT.BodyCoachAI.service.RagService;
 import RUT.BodyCoachAI.service.SaluteSpeechService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -27,13 +28,16 @@ public class ChatController {
     private final GigaChatService gigaChatService;
     private final SaluteSpeechService speechService;
     private final ChatHistoryService chatHistoryService;
+    private final RagService ragService;
     
     public ChatController(AgentRouter agentRouter, GigaChatService gigaChatService,
-                         SaluteSpeechService speechService, ChatHistoryService chatHistoryService) {
+                         SaluteSpeechService speechService, ChatHistoryService chatHistoryService,
+                         RagService ragService) {
         this.agentRouter = agentRouter;
         this.gigaChatService = gigaChatService;
         this.speechService = speechService;
         this.chatHistoryService = chatHistoryService;
+        this.ragService = ragService;
     }
     
     @GetMapping("/")
@@ -80,18 +84,50 @@ public class ChatController {
 
         String text = request.getText() == null ? "" : request.getText();
         String image = request.getImage();
-        boolean hasImage = image != null && !image.isBlank();
+        boolean ragEnabled = ragService.isRagEnabled(session);
 
-        AgentRouter.AgentResponse agentResponse = agentRouter.route(text, image, userId);
+        AgentRouter.AgentResponse agentResponse = agentRouter.route(text, image, userId, ragEnabled);
 
         chatHistoryService.addUserMessage(userId, text);
-        chatHistoryService.addAiMessage(userId, agentResponse.getResponse());
+        String responseText = agentResponse.getResponse();
+
+        Map<String, Object> data = null;
+        if (responseText != null && responseText.startsWith("EXCEL_FILE:")) {
+            String fileName = responseText.substring("EXCEL_FILE:".length());
+            data = new HashMap<>();
+            data.put("fileName", fileName);
+            responseText = null;
+        }
+        
+        chatHistoryService.addAiMessage(userId, responseText);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("response", agentResponse.getResponse());
+        response.put("response", responseText);
         response.put("agent", agentResponse.getAgent());
         response.put("type", "text");
-        response.put("data", null);
+        response.put("data", data);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/api/rag/toggle")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleRag(HttpSession session) {
+        ragService.toggleRag(session);
+        boolean ragEnabled = ragService.isRagEnabled(session);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("ragEnabled", ragEnabled);
+        response.put("status", "success");
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/api/rag/status")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getRagStatus(HttpSession session) {
+        boolean ragEnabled = ragService.isRagEnabled(session);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("ragEnabled", ragEnabled);
         return ResponseEntity.ok(response);
     }
 

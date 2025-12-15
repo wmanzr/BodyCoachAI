@@ -11,6 +11,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpSession;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -39,8 +40,8 @@ public class RagService {
         this.contentRetriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingStore(embeddingStore)
                 .embeddingModel(embeddingModel)
-                .maxResults(100)
-                .minScore(0.6)
+                .maxResults(5)
+                .minScore(0.75)
                 .build();
 
         loadDocuments();
@@ -64,9 +65,9 @@ public class RagService {
                     EmbeddingStoreIngestor.builder()
                             .embeddingModel(embeddingModel)
                             .embeddingStore(embeddingStore)
-                            .documentSplitter(DocumentSplitters.recursive(1000, 200))
+                            .documentSplitter(DocumentSplitters.recursive(800, 200))
                             .build();
-
+            
             for (File pdfFile : pdfFiles) {
                 String text = extractTextFromPdf(pdfFile);
                 if (text != null && !text.trim().isEmpty()) {
@@ -95,5 +96,26 @@ public class RagService {
 
     public ContentRetriever getContentRetriever() {
         return contentRetriever;
+    }
+
+    private static final String RAG_ENABLED_ATTRIBUTE = "ragEnabled";
+    private static final boolean DEFAULT_RAG_STATE = true;
+    
+    public boolean isRagEnabled(HttpSession session) {
+        Boolean ragEnabled = (Boolean) session.getAttribute(RAG_ENABLED_ATTRIBUTE);
+        if (ragEnabled == null) {
+            setRagEnabled(session, DEFAULT_RAG_STATE);
+            return DEFAULT_RAG_STATE;
+        }
+        return ragEnabled;
+    }
+    
+    public void setRagEnabled(HttpSession session, boolean enabled) {
+        session.setAttribute(RAG_ENABLED_ATTRIBUTE, enabled);
+    }
+    
+    public void toggleRag(HttpSession session) {
+        boolean currentState = isRagEnabled(session);
+        setRagEnabled(session, !currentState);
     }
 }
