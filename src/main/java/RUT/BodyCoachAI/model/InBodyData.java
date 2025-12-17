@@ -15,8 +15,7 @@ public class InBodyData {
 
     private Double bmr;                  // базовый метаболизм (ккал)
 
-    private Double inBodyScore;          // итоговая оценка InBody (например: "Хорошо", "Норма", "Ниже нормы")
-
+    private Double inBodyScore;          // итоговая оценка InBody (0-100)
     public Integer getAge() {
         return age;
     }

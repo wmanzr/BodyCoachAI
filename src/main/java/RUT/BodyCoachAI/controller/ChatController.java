@@ -96,7 +96,7 @@ public class ChatController {
             String fileName = responseText.substring("EXCEL_FILE:".length());
             data = new HashMap<>();
             data.put("fileName", fileName);
-            responseText = null;
+            responseText = "Модель отправила Excel файл с данными.";
         }
         
         chatHistoryService.addAiMessage(userId, responseText);

@@ -48,5 +48,4 @@ public class BodyCoachAiApplication {
 			log.error("Ошибка при загрузке .env файла", e);
 		}
 	}
-
 }

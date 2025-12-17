@@ -14,6 +14,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Base64;
@@ -27,11 +30,13 @@ public class GigaChatService implements ChatLanguageModel {
     private String authKey;
     
     private final RestTemplate restTemplate;
+    private final Gson gson;
     private String accessToken;
     private long tokenExpiresAt = 0;
     
     public GigaChatService() {
         this.restTemplate = new RestTemplate();
+        this.gson = new Gson();
         disableSslVerification();
     }
 
@@ -47,7 +52,7 @@ public class GigaChatService implements ChatLanguageModel {
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        StringBuilder messagesJson = new StringBuilder();
+        JsonArray messagesArray = new JsonArray();
         for (ChatMessage msg : messages) {
             String role;
             String content;
@@ -67,21 +72,18 @@ public class GigaChatService implements ChatLanguageModel {
                 continue;
             }
 
-            String safeContent = content.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
-            messagesJson.append(String.format("{\"role\": \"%s\", \"content\": \"%s\"},", role, safeContent));
+            JsonObject messageObj = new JsonObject();
+            messageObj.addProperty("role", role);
+            messageObj.addProperty("content", content);
+            messagesArray.add(messageObj);
         }
 
-        if (messagesJson.length() > 0) {
-            messagesJson.setLength(messagesJson.length() - 1);
-        }
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("model", "GigaChat");
+        requestBody.add("messages", messagesArray);
+        requestBody.addProperty("temperature", 0.7);
 
-        String body = String.format("""
-                {
-                  "model": "GigaChat",
-                  "messages": [%s],
-                  "temperature": 0.7
-                }
-                """, messagesJson.toString());
+        String body = gson.toJson(requestBody);
 
         HttpEntity<String> request = new HttpEntity<>(body, headers);
 
@@ -107,25 +109,26 @@ public class GigaChatService implements ChatLanguageModel {
             File imageFile = base64ToFile(base64Image);
             String imageId = uploadFile(imageFile);
             
-            String safePrompt = prompt.replace("\"", "\\\"").replace("\n", "\\n");
-            
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
             
-            String body = """
-                {
-                  "model": "GigaChat-Max",
-                  "messages": [
-                    {
-                      "role": "user",
-                      "content": "%s",
-                      "attachments": ["%s"]
-                    }
-                  ],
-                  "temperature": 0.5
-                }
-                """.formatted(safePrompt, imageId);
+            JsonObject messageObj = new JsonObject();
+            messageObj.addProperty("role", "user");
+            messageObj.addProperty("content", prompt);
+            JsonArray attachmentsArray = new JsonArray();
+            attachmentsArray.add(imageId);
+            messageObj.add("attachments", attachmentsArray);
+            
+            JsonArray messagesArray = new JsonArray();
+            messagesArray.add(messageObj);
+            
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("model", "GigaChat-Max");
+            requestBody.add("messages", messagesArray);
+            requestBody.addProperty("temperature", 0.5);
+            
+            String body = gson.toJson(requestBody);
             
             HttpEntity<String> request = new HttpEntity<>(body, headers);
             

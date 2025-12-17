@@ -162,7 +162,6 @@ public class DataAgent {
 
                 Если action="text", обязательно заполни поле replyHtml с готовым ответом.
                 Если action="excel" или "kbju", replyHtml можно оставить пустым/ null.
-                П
 
                 Формат JSON:
                 {

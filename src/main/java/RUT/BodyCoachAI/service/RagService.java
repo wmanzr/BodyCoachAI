@@ -41,7 +41,7 @@ public class RagService {
                 .embeddingStore(embeddingStore)
                 .embeddingModel(embeddingModel)
                 .maxResults(5)
-                .minScore(0.75)
+                .minScore(0.6)
                 .build();
 
         loadDocuments();

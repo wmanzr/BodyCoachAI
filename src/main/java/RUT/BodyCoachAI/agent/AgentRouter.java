@@ -1,9 +1,10 @@
 package RUT.BodyCoachAI.agent;
 
-import RUT.BodyCoachAI.service.ChatHistoryService;
 import RUT.BodyCoachAI.service.GigaChatService;
 import RUT.BodyCoachAI.service.InBodyStateService;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,29 +19,26 @@ public class AgentRouter {
     
     private final TrainingPlanAgent trainingPlanAgent;
     private final NutritionPlanAgent nutritionPlanAgent;
-    private final QAAgent QAAgent;
+    private final QAAgent qaAgent;
     private final RagQaAgent ragQaAgent;
     private final DataAgent dataAgent;
     private final ChatLanguageModel chatModel;
-    private final ChatHistoryService chatHistoryService;
     private final InBodyStateService inBodyStateService;
     
     public AgentRouter(
             TrainingPlanAgent trainingPlanAgent,
             NutritionPlanAgent nutritionPlanAgent,
-            QAAgent QAAgent,
+            QAAgent qaAgent,
             RagQaAgent ragQaAgent,
             DataAgent dataAgent,
             GigaChatService gigaChatService,
-            ChatHistoryService chatHistoryService,
             InBodyStateService inBodyStateService) {
         this.trainingPlanAgent = trainingPlanAgent;
         this.nutritionPlanAgent = nutritionPlanAgent;
-        this.QAAgent = QAAgent;
+        this.qaAgent = qaAgent;
         this.ragQaAgent = ragQaAgent;
         this.dataAgent = dataAgent;
         this.chatModel = gigaChatService.getChatLanguageModel();
-        this.chatHistoryService = chatHistoryService;
         this.inBodyStateService = inBodyStateService;
     }
 
@@ -83,7 +81,10 @@ public class AgentRouter {
             routingUserRequest = routingUserRequest + "\n\nВАЖНО: у пользователя уже есть сохранённые данные отчёта InBody (из предыдущего изображения).";
         }
 
-        List<ChatMessage> messages = chatHistoryService.buildMessagesWithHistory(userId, systemPrompt, routingUserRequest);
+        List<ChatMessage> messages = List.of(
+                SystemMessage.from(systemPrompt),
+                UserMessage.from(routingUserRequest)
+        );
         String agentType = chatModel.generate(messages).content().text();
         String normalizedType = agentType != null ? agentType.toLowerCase().trim() : "qa";
         
@@ -116,7 +117,7 @@ public class AgentRouter {
             } else {
                 log.info("Выбран агент: QAAgent (RAG выключен) для запроса: \"{}\"", userRequest);
                 response = new AgentResponse(
-                    QAAgent.answerQuestion(userRequest, userId),
+                    qaAgent.answerQuestion(userRequest, userId),
                     "QAAgent"
                 );
             }
