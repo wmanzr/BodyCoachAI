@@ -4,460 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BodyCoach AI</title>
-    <style>
-        :root {
-            --bg: #070b0d;
-            --panel: rgba(12, 16, 18, 0.92);
-            --panel-2: rgba(10, 13, 15, 0.88);
-            --text: #e7f1ee;
-            --muted: rgba(231, 241, 238, 0.72);
-            --border: rgba(255, 255, 255, 0.10);
-            --shadow: 0 24px 80px rgba(0,0,0,0.6);
-
-            --neon: #00ff88;
-            --neon-2: #22ff9d;
-            --danger: #ff3b6a;
-
-            --radius: 18px;
-            --radius-sm: 12px;
-            --control-h: 46px;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
-            background:
-                radial-gradient(1200px 700px at 25% 15%, rgba(0, 255, 136, 0.10), transparent 60%),
-                radial-gradient(900px 600px at 75% 80%, rgba(0, 255, 136, 0.08), transparent 60%),
-                linear-gradient(180deg, #050708, #070b0d);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            color: var(--text);
-            transition: background 0.4s ease;
-        }
-
-        body.rag-disabled {
-            background:
-                radial-gradient(1200px 700px at 25% 15%, rgba(255, 59, 106, 0.08), transparent 60%),
-                radial-gradient(900px 600px at 75% 80%, rgba(255, 59, 106, 0.06), transparent 60%),
-                linear-gradient(180deg, #050708, #070b0d);
-        }
-
-        .container {
-            max-width: 980px;
-            width: 100%;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: min(92vh, 920px);
-            backdrop-filter: blur(10px);
-        }
-
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 18px 20px;
-            background: linear-gradient(180deg, rgba(0,255,136,0.10), rgba(0,0,0,0.0));
-            border-bottom: 1px solid var(--border);
-        }
-
-        .brand {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .brand h1 {
-            font-size: 18px;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-        }
-
-        .brand p {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .status-pill {
-            font-size: 12px;
-            color: var(--muted);
-            padding: 8px 10px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: rgba(0,0,0,0.25);
-            white-space: nowrap;
-        }
-
-        /* RAG Toggle Switch */
-        .rag-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            cursor: pointer;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.15);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            transition: 0.3s;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 2px;
-            bottom: 2px;
-            background-color: var(--text);
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background-color: rgba(0, 255, 136, 0.25);
-            border-color: rgba(0, 255, 136, 0.5);
-        }
-
-        .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(20px);
-            background-color: var(--neon);
-            box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
-        }
-
-        .rag-label {
-            user-select: none;
-            white-space: nowrap;
-        }
-
-        /* Chat */
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 18px 18px 10px;
-            background: var(--panel-2);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .message {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .message.user { align-items: flex-end; }
-        .message.assistant { align-items: flex-start; }
-
-        .message-bubble {
-            max-width: 78%;
-            padding: 12px 14px;
-            border-radius: 16px;
-            word-wrap: break-word;
-            line-height: 1.35;
-            border: 1px solid var(--border);
-            overflow-wrap: break-word;
-        }
-        
-        /* Стили для HTML элементов внутри message-bubble */
-        .message-bubble ul,
-        .message-bubble ol {
-            margin: 8px 0;
-            padding-left: 20px;
-            padding-right: 0;
-            list-style-position: inside;
-            margin-left: 0;
-            margin-right: 0;
-        }
-        
-        .message-bubble li {
-            margin: 4px 0;
-            padding-left: 0;
-            padding-right: 0;
-            margin-left: 0;
-            margin-right: 0;
-        }
-        
-        .message-bubble h1,
-        .message-bubble h2,
-        .message-bubble h3,
-        .message-bubble h4,
-        .message-bubble h5,
-        .message-bubble h6 {
-            margin: 12px 0 8px 0;
-            font-weight: 600;
-        }
-        
-        .message-bubble h1 { font-size: 1.5em; }
-        .message-bubble h2 { font-size: 1.3em; }
-        .message-bubble h3 { font-size: 1.1em; }
-        
-        .message-bubble p {
-            margin: 4px 0;
-        }
-        
-        .message-bubble p:first-child {
-            margin-top: 0;
-        }
-        
-        .message-bubble p:last-child {
-            margin-bottom: 0;
-        }
-        
-        .message-bubble hr {
-            margin: 12px 0;
-            border: none;
-            border-top: 1px solid var(--border);
-        }
-        
-        .message-bubble code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-        
-        .message-bubble pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 8px 0;
-        }
-        
-        .message-bubble blockquote {
-            margin: 8px 0;
-            padding-left: 16px;
-            border-left: 3px solid var(--neon);
-            color: var(--muted);
-        }
-
-        .message.user .message-bubble {
-            background: rgba(0, 255, 136, 0.12);
-            border-color: rgba(0, 255, 136, 0.25);
-            box-shadow: 0 0 0 1px rgba(0,255,136,0.06), 0 10px 30px rgba(0,255,136,0.08);
-        }
-
-        .message.assistant .message-bubble {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .agent-badge {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        /* Input */
-        .input-container {
-            padding: 14px 16px;
-            border-top: 1px solid var(--border);
-            background: rgba(0,0,0,0.25);
-        }
-
-        .image-preview {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .image-preview img {
-            width: 96px;
-            height: 96px;
-            object-fit: cover;
-            border-radius: 14px;
-            border: 1px solid rgba(0,255,136,0.35);
-            cursor: pointer;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
-        }
-
-        .input-wrapper {
-            display: flex;
-            gap: 10px;
-            align-items: stretch;
-        }
-
-        textarea {
-            flex: 1;
-            height: var(--control-h);
-            padding: 12px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-family: inherit;
-            resize: none;
-            background: rgba(0,0,0,0.35);
-            color: var(--text);
-        }
-
-        textarea::placeholder { color: rgba(231,241,238,0.45); }
-
-        textarea:focus {
-            outline: none;
-            border-color: rgba(0,255,136,0.45);
-            box-shadow: 0 0 0 3px rgba(0,255,136,0.10);
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            display: inline-flex;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .btn {
-            height: var(--control-h);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 0 14px;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(0,255,136,0.35);
-            background: rgba(0,255,136,0.10);
-            color: var(--text);
-            cursor: pointer;
-            user-select: none;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-            box-shadow: 0 0 0 1px rgba(0,255,136,0.08), 0 14px 36px rgba(0,0,0,0.45);
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            background: rgba(0,255,136,0.14);
-            border-color: rgba(0,255,136,0.55);
-            box-shadow: 0 0 0 1px rgba(0,255,136,0.12), 0 18px 44px rgba(0,0,0,0.55);
-        }
-
-        .btn:active:not(:disabled) { transform: translateY(0px) scale(0.99); }
-
-        .btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .btn-primary {
-            background: linear-gradient(180deg, rgba(0,255,136,0.20), rgba(0,255,136,0.08));
-        }
-
-        .btn-danger {
-            border-color: rgba(255, 59, 106, 0.40);
-            background: rgba(255, 59, 106, 0.12);
-            box-shadow: 0 0 0 1px rgba(255,59,106,0.10), 0 14px 36px rgba(0,0,0,0.45);
-        }
-
-        .btn-danger.recording {
-            animation: pulse 1s infinite;
-        }
-
-        .btn-icon {
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 1px rgba(255,59,106,0.16), 0 0 28px rgba(255,59,106,0.28); }
-            50% { box-shadow: 0 0 0 1px rgba(255,59,106,0.22), 0 0 44px rgba(255,59,106,0.40); }
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(231, 241, 238, 0.25);
-            border-radius: 50%;
-            border-top-color: var(--neon);
-            animation: spin 0.9s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Init screen */
-        .init-screen {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(900px 600px at 50% 35%, rgba(0,255,136,0.10), transparent 65%);
-        }
-
-        .init-content {
-            width: min(520px, 92%);
-            text-align: center;
-            padding: 34px 26px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: rgba(0,0,0,0.25);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.55);
-        }
-
-        .init-content h2 {
-            font-size: 22px;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .init-content p {
-            font-size: 13px;
-            color: var(--muted);
-            margin-bottom: 18px;
-            line-height: 1.45;
-        }
-
-        .init-button { min-width: 170px; }
-
-        .init-status {
-            margin-top: 14px;
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .init-status.success { color: rgba(0,255,136,0.9); }
-        .init-status.error { color: rgba(255,59,106,0.9); }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
 </head>
 <body>
     <div class="container">
@@ -568,7 +115,7 @@
         // До "Начать" всё снизу недоступно
         setInputsEnabled(false);
         
-        // Загрузка состояния RAG при загрузке страницы
+        // Загружает актуальный статус RAG с бэкенда при загрузке страницы
         async function loadRagStatus() {
             try {
                 const response = await fetch('/api/rag/status');
@@ -581,7 +128,7 @@
             }
         }
         
-        // Обновление визуального состояния RAG
+        // Обновляет визуальное состояние интерфейса в зависимости от статуса RAG
         function updateRagVisualState() {
             if (state.ragEnabled) {
                 document.body.classList.remove('rag-disabled');
@@ -592,7 +139,7 @@
             }
         }
         
-        // Переключение RAG
+        // Отправляет на бэкенд запрос на переключение состояния RAG
         async function toggleRag() {
             try {
                 const response = await fetch('/api/rag/toggle', {
@@ -615,7 +162,7 @@
         // Загружаем статус RAG при загрузке страницы
         loadRagStatus();
         
-        // Инициализация системы
+        // Вызывает /api/init и при успешном ответе включает интерфейс чата
         async function initializeSystem() {
             elements.initButton.disabled = true;
             elements.initStatus.textContent = 'Инициализация системы...';
@@ -648,13 +195,14 @@
             }
         }
         
+        // Показывает текст ошибки и разблокирует кнопку инициализации
         function showError(message) {
             elements.initStatus.textContent = message;
             elements.initStatus.className = 'init-status error';
             elements.initButton.disabled = false;
         }
         
-        // Обработка загрузки изображения (только 1 фото)
+        // Обработчик выбора файла: читает выбранное изображение и показывает превью (1 фото)
         elements.imageInput.addEventListener('change', function(e) {
             const file = e.target.files && e.target.files[0];
             state.selectedImages = [];
@@ -675,11 +223,13 @@
             reader.readAsDataURL(file);
         });
         
+        // Удаляет выбранное изображение из состояния и из превью
         function removeImage(imageData) {
             state.selectedImages = state.selectedImages.filter(img => img !== imageData);
             updateImagePreview();
         }
         
+        // Перерисовывает блок превью изображений на основе текущего state.selectedImages
         function updateImagePreview() {
             elements.imagePreview.innerHTML = '';
             state.selectedImages.forEach(imageData => {
@@ -704,7 +254,7 @@
             this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
         
-        // Отправка сообщения
+        // Собирает текст и (опционально) картинку и отправляет запрос в /api/chat
         async function sendMessage() {
             if (!state.systemInitialized) {
                 alert('Пожалуйста, сначала инициализируйте систему, нажав кнопку "Начать"');
@@ -751,6 +301,7 @@
             }
         }
         
+        // Очищает текстовое поле, инпут для файлов и предпросмотр изображений
         function clearInput() {
             elements.messageInput.value = '';
             elements.imageInput.value = '';
@@ -758,6 +309,7 @@
             elements.imagePreview.innerHTML = '';
         }
         
+        // Переключает кнопку отправки в состояние загрузки и обратно
         function setLoading(loading) {
             elements.sendButton.disabled = loading;
             elements.sendButton.innerHTML = loading
@@ -765,7 +317,7 @@
                 : '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7-7-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Отправить';
         }
         
-        // Добавление сообщения в чат
+        // Создаёт DOM-элементы сообщения (пользователь или ассистент) и добавляет их в чат
         function addMessage(type, text, images, agent, responseType, data) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -836,6 +388,7 @@
         // Голосовой ввод
         elements.recordButton.addEventListener('click', toggleRecording);
         
+        // Переключает состояние голосовой записи: старт/стоп
         async function toggleRecording() {
             if (!state.isRecording) {
                 startRecording();
@@ -844,6 +397,7 @@
             }
         }
         
+        // Запрашивает доступ к микрофону и начинает запись аудио через MediaRecorder
         async function startRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -877,6 +431,7 @@
             }
         }
         
+        // Останавливает запись аудио и сбрасывает визуальное состояние кнопки записи
         function stopRecording() {
             if (state.mediaRecorder && state.isRecording) {
                 state.mediaRecorder.stop();
@@ -885,6 +440,7 @@
             }
         }
         
+        // Отправляет записанное аудио на /api/speech и подставляет распознанный текст в поле ввода
         async function sendAudioToServer(audioBlob, filename = 'recording.pcm') {
             const formData = new FormData();
             formData.append('audio', audioBlob, filename);
@@ -907,7 +463,7 @@
             }
         }
 
-        // Конвертация audio/webm (opus) -> PCM16 mono 16kHz (Blob)
+        // Конвертирует audio/webm (opus) в Blob с PCM16 mono 16kHz для сервера
         async function convertToPcm16kMono(audioBlob) {
             const arrayBuffer = await audioBlob.arrayBuffer();
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
